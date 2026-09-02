@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teams</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1115;
+      --button-idle: #16a34a;
+      --button-running: #dc2626;
+      --button-text: #ffffff;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font: 16px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #171a20 0, var(--bg) 48%);
+      color: var(--button-text);
+      overflow: hidden;
+    }
+
+    main {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .toggle-btn {
+      width: min(58vw, 190px);
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--button-idle);
+      color: var(--button-text);
+      box-shadow: 0 20px 48px var(--shadow);
+      font: 700 1.1rem/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+
+    .toggle-btn[data-running="true"] {
+      background: var(--button-running);
+    }
+
+    .toggle-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+
+    .toggle-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .toggle-btn:focus-visible {
+      outline: 3px solid rgba(255, 255, 255, 0.35);
+      outline-offset: 4px;
+    }
+
+    .hidden-buffer {
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <button id="toggleBtn" class="toggle-btn" type="button" aria-pressed="false" data-running="false">Iniciar</button>
+    <textarea
+      id="typingArea"
+      class="hidden-buffer"
+      aria-hidden="true"
+      tabindex="-1"
+      readonly
+      spellcheck="false"
+    ></textarea>
+  </main>
+
+  <script>
+    const intervalMs = 10_000;
+    const typingDelayMs = 120;
+    const word = 'teams';
+    const toggleBtn = document.getElementById('toggleBtn');
+    const typingArea = document.getElementById('typingArea');
+
+    let timerId = null;
+    let typingRunId = 0;
+
+    function setRunning(isRunning) {
+      toggleBtn.textContent = isRunning ? 'Parar' : 'Iniciar';
+      toggleBtn.dataset.running = String(isRunning);
+      toggleBtn.setAttribute('aria-pressed', String(isRunning));
+    }
+
+    function syncHiddenBuffer() {
+      typingArea.dispatchEvent(new Event('input', { bubbles: true }));
+      typingArea.scrollTop = typingArea.scrollHeight;
+    }
+
+    function typeWord() {
+      const runId = ++typingRunId;
+      let index = 0;
+
+      function typeNextChar() {
+        if (runId !== typingRunId) {
+          return;
+        }
+
+        if (index < word.length) {
+          typingArea.value += word[index];
+          index += 1;
+          syncHiddenBuffer();
+          window.setTimeout(typeNextChar, typingDelayMs);
+          return;
+        }
+
+        typingArea.value += ' ';
+        syncHiddenBuffer();
+      }
+
+      typeNextChar();
+    }
+
+    function startLoop() {
+      if (timerId) {
+        return;
+      }
+
+      setRunning(true);
+      typeWord();
+      timerId = window.setInterval(typeWord, intervalMs);
+    }
+
+    function stopLoop() {
+      if (timerId) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+
+      typingRunId += 1;
+      setRunning(false);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (timerId) {
+        stopLoop();
+        return;
+      }
+
+      startLoop();
+    });
+
+    window.addEventListener('beforeunload', stopLoop);
+  </script>
+</body>
+</html>
